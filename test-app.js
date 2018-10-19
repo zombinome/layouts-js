@@ -1,61 +1,56 @@
-import { Region, Rect } from './layouts.js';
-import { UIControl, Dialog, Button, Label, Checkbox } from './ui-controls.js';
+import { Region, Rect } from './regions.js';
+import { UIControl, UIControlLayout } from './ui-controls-base.js';
+import { Dialog, Button, Label, Checkbox } from './ui-controls.js';
 
 const canvasRect = new Rect(0, 0, 800, 600);
-const pane = new UIControl(canvasRect);
-const mainRegion = pane.region; // new Region(-1, canvasRect, null, null, null);
+const layout = new UIControlLayout(canvasRect);
+layout.draw = function(ctx, rect) {
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(1, 1, rect.width - 2, rect.height - 2);
+};
+
+const mainRegion = layout.region; // new Region(-1, canvasRect, null, null, null);
 
 /**@type {HTMLCanvasElement}*/ let canvasEl;
 /**@type {CanvasRenderingContext2D}*/ let canvasContext;
 
 window.start = function start() {
-    pane.draw = function(ctx, rect, forced) {
-        if (!this.visible) return;
 
-        if (!forced && !this._redrawRequired) return;
-        this._redrawRequired = false;
-
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(1, 1, rect.width - 2, rect.height - 2);
-    };
-
-    const dialog = pane.addControl(new Dialog(), new Rect(50, 100, 200, 120));
+    /** @type {Dialog} */
+    const dialog = layout.add-Control(new Dialog(), new Rect(50, 100, 200, 120));
     dialog.title = 'Test dialog';
 
+    /** @type {Label} */
     const label = dialog.addControl(new Label(), new Rect(16, 40, 200, 16));
     label.text = 'Test dialog window';
 
+    /** @type {Checkbox} */
     const cb = dialog.addControl(new Checkbox(), new Rect(16, 60, 16, 16));
     cb.checked = true;
-    cb.onClick = function() {
-        this.checked = !this.checked;
-        renderScene();
-    };
 
+    /** @type {Button} */
     const okButton = dialog.addControl(new Button(), new Rect(26, 90, 80, 24));
     okButton.text = 'OK';
     okButton.onClick = function() {
         console.info(this.text + ' button clicked');
-        pane.removeControl(dialog.id);
-        renderScene();
+        layout.removeControl(dialog.id);
     };
 
+    /** @type {Button} */
     const cancelButton = dialog.addControl(new Button(), new Rect(114, 90, 80, 24));
     cancelButton.text = 'Cancel';
     cancelButton.onClick = function() {
         console.info(this.text + ' button clicked');
-        pane.removeControl(dialog.id);
-        renderScene();
+        layout.removeControl(dialog.id);
     };
 
     canvasEl = document.querySelector('canvas');
     scaleCanvas(canvasEl, canvasRect.width, canvasRect.height);
 
     canvasContext = canvasEl.getContext('2d');
-    renderScene();
 
     canvasEl.addEventListener('mousemove', args => {
         const region = mainRegion.findRegionByXY(args.clientX, args.clientY);
@@ -64,16 +59,11 @@ window.start = function start() {
                                 : 'default';
     });
 
-    canvasEl.addEventListener('click', args => {
-        const region = mainRegion.findRegionByXY(args.clientX, args.clientY);
-        if (region && region.data && region.data.onClick) {
-            region.data.onClick(args);
-        }
-    });
+    canvasEl.addEventListener('click', layout.handleMouseClick.bind(layout));
 
     const y = 100;
     window.requestAnimationFrame(function redraw(timeStamp) {
-        requestAnimationFrame(redraw);
+        window.requestAnimationFrame(redraw);
 
         // const newX = windowRegion.shape.x;
         // const newY = y + Math.round(y * Math.sin(timeStamp / 500));
@@ -81,21 +71,9 @@ window.start = function start() {
         // const newH = windowRegion.shape.height;
         // windowRegion.update(new Rect(newX, newY, newW, newH));
 
-        renderScene();
-    })
+        renderRegion(canvasContext, layout.region, layout.shape);
+    });
 };
-
-function renderScene() {
-    renderRegion(canvasContext, pane.region, pane.shape);
-
-    // canvasContext.strokeStyle = '#000';
-    // canvasContext.lineWidth = 1;
-    // canvasContext.strokeRect(canvasRect.x, canvasRect.y, canvasRect.width, canvasRect.height);
-    // canvasContext.fillStyle = '#fff';
-    // canvasContext.fillRect(1, 1, canvasRect.width - 2, canvasRect.height - 2);
-
-    ////pane.region.enumRegions(region => renderRegion(canvasContext, region, mainRegion.shape));
-}
 
 /**
  * Based on:
@@ -130,7 +108,7 @@ function scaleCanvas(canvasElement, width, height) {
 function renderRegion(canvasContext, region, parentShape) {
     const shape = region.shape.relate(parentShape.x, parentShape.y);
     if (typeof region.data.draw === 'function') {
-        region.data.draw(canvasContext, shape, false);
+        region.data.drawIfRequired(canvasContext, shape, false);
     }
 
     region.enumRegions(childRegion => renderRegion(canvasContext, childRegion, shape));

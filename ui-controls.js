@@ -1,92 +1,27 @@
 'use strict';
 
 import {textAlign, textBaseLine} from './ui-constants.js';
-import {Region} from './layouts.js';
+import { UIControl, UIDialog } from './ui-controls-base.js';
 
-const visibleProp = Symbol('visible');
-const enabledProp = Symbol('enabled');
-////const redrawRequiredProp = Symbol('redrawRequired');
-const stateProp = Symbol('state');
-////const textProp = Symbol('text');
-////const checkedProp = Symbol('checked');
+const $state = Symbol('state');
+const $checked = Symbol('checked');
+const $redrawRequired = Symbol.for('redrawRequired');
 
-export class UIControl {
-    /**
-     * @constructor
-     * @param [rect] {IShape}
-     */
-    constructor(rect) {
-        /** @type {UIControl[]} */this.controls = [];
-        /** @type {UIControl}   */this.parent = null;
-        /** @type {Region}      */this.region = null;
-        this[visibleProp] = true;
-        this[enabledProp] = true;
-        this._redrawRequired = true;
-        if (rect) {
-            this.region = Region.create(rect, this);
-        }
-    }
-
-    get id() { return this.region.id; }
-
-    get shape() { return this.region.shape; }
-    set shape(value) { this.region.update(value); }
-
-    get visible() { return this[visibleProp]; }
-    set visible(value) {
-        value = !!value;
-        if (this[visibleProp] !== value) {
-            this[visibleProp] = value;
-            this.parent && (this.parent._redrawRequired = true);
-        }
-    }
-
-    get enabled() { return this[enabledProp]; }
-    set enabled(value) {
-        value = !!value;
-        if (this[enabledProp] !== value) {
-            this[enabledProp] = value;
-            this._redrawRequired = true;
-        }
-    }
-
-    addControl(control, shape) {
-        control.region = this.region.addRegion(shape, control);
-        control.parent = this;
-        this.controls.push(control);
-
-        return control;
-    }
-
-    removeControl(controlId) {
-        const childControlIndex = this.controls.findIndex(x => x.id === controlId);
-        if (childControlIndex >= 0) {
-            this.region.removeRegion(controlId);
-            this.controls.splice(childControlIndex, 1);
-        }
-    }
-}
-
-export class Dialog extends UIControl{
+export class Dialog extends UIDialog {
     constructor() {
         super();
         this.title = '';
 
         this.style = new DialogStyle();
+
+        this.onClick = null;
     }
 
     /**
      * @param ctx {CanvasRenderingContext2D}
      * @param rect {Rect}
-     * @param forced {boolean}
      */
-    draw(ctx, rect, forced) {
-        if (!this.visible) return;
-
-        if (!forced && !this._redrawRequired) return;
-        this._redrawRequired = false;
-
-        //** @type Rect */ const rect = this.shape.relate(relPoint.x, relPoint.y);
+    draw(ctx, rect) {
         const style = this.style;
 
         // drawing control border
@@ -136,23 +71,21 @@ export function DialogStyle() {
 export class Button extends UIControl {
     constructor() {
         super();
+        // fields
         this.text = '';
 
+        // styles
         this.style = new ButtonStyle();
+
+        // event handlers
+        this.onClick = null;
     }
 
     /**
      * @param ctx {CanvasRenderingContext2D}
      * @param rect {Rect}
-     * @param forced {boolean}
      */
-    draw(ctx, rect, forced) {
-        if (!this.visible) return;
-
-        if (!forced && !this._redrawRequired) return;
-        this._redrawRequired = false;
-
-        //** @type Rect */ const rect = this.shape.relate(relPoint.x, relPoint.y);
+    draw(ctx, rect) {
         const style = this.style;
 
         ctx.strokeStyle = style.borderColor;
@@ -198,21 +131,15 @@ export class Label extends UIControl {
         this.text = '';
 
         this.style = new LabelStyle();
+
+        this.onClick = null;
     }
 
     /**
      * @param ctx {CanvasRenderingContext2D}
      * @param rect {Rect}
-     * @param forced {boolean}
      */
-    draw(ctx, rect, forced) {
-        if (!this.visible) return;
-
-        if (!forced && !this._redrawRequired) return;
-        this._redrawRequired = false;
-
-
-        //** @type Rect */ const rect = this.shape.relate(relPoint.x, relPoint.y);
+    draw(ctx, rect) {
         const style = this.style;
 
         const clientX = rect.x + style.padding;
@@ -236,27 +163,31 @@ export class Checkbox extends UIControl {
     constructor() {
         super();
 
-        this.checked = false;
-        this[stateProp] = 0;
+        this[$checked] = false;
+        this[$state] = 0;
         // 0 - unchecked
         // 1 - unchecked highlighted
         // 2 - checked
         // 3 - checked highlighted
 
         this.style = new CheckboxStyle();
+
+        this.onClick = null;
+    }
+
+    get checked() { return this[$checked]; }
+    set checked(value) {
+        if (this[$checked] !== value) {
+            this[$checked] = value;
+            this[$redrawRequired] = true;
+        }
     }
 
     /**
      * @param ctx {CanvasRenderingContext2D}
-     * @param rect {Rect}-
-     * @param forced {boolean}
+     * @param rect {Rect}
      */
-    draw(ctx, rect, forced) {
-        if (!this.visible) return;
-
-        if (!forced && !this._redrawRequired) return;
-        this._redrawRequired = false;
-
+    draw(ctx, rect) {
         const size = Math.min(rect.width, rect.height);
         const style = this.style;
         const bw = style.borderWidth,
@@ -268,7 +199,7 @@ export class Checkbox extends UIControl {
         ctx.strokeRect(rect.x, rect.y, size, size);
 
         // Draw cb background
-        ctx.fillStyle = this[stateProp] === 0 || this[stateProp] === 2 ? style.bgColor : style.bgHighlightedColor;
+        ctx.fillStyle = this[$state] === 0 || this[$state] === 2 ? style.bgColor : style.bgHighlightedColor;
         ctx.fillRect(rect.x + bw, rect.y + bw, size - bw2, size - bw2);
 
         if (this.checked) {
@@ -281,6 +212,12 @@ export class Checkbox extends UIControl {
             ctx.lineTo(rect.x + quarterSize * 3, rect.y + quarterSize);
             ctx.stroke();
         }
+    }
+
+    onClick() {
+        if (!this.visible || !this.enabled) return;
+
+        this.checked = !this.checked;
     }
 }
 
