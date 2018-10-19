@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Layouts test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #ccc;
+        }
+
+        canvas {
+            background-color: #fff;
+        }
+
+        form { padding: 20px; background: #fff; }
+        form > input, form > label, form > button { display: inline; }
+    </style>
+</head>
+<body>
+    <canvas id="buffer" style="width: 800px; height: 600px;"></canvas>
+    <script type="module" src="test-app.js"></script>
+    <p><button onclick="start()">Start demo</button></p>
+
+    <form>
+        <input type="text" value="text" title="text" />
+        <input type="checkbox" id="cb"><label for="cb">Checkbox</label>
+        <input type="radio" id="rb"><label for="rb">Radio</label>
+        <button>Button</button>
+    </form>
+</body>
+</html>
