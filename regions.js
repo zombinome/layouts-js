@@ -115,6 +115,7 @@ export class Circle {
  * @type {{containsPoint: (function(number, number): boolean), relate: (function(): IShape), getLocalPoint: (function(number, number): Point), equals: (function(IEquatable): boolean), getHash: (function(): number)}}
  */
 const emptyShape = {
+    x: 0, y: 0,
     containsPoint: (x, y) => false,
     relate: function() { return this; },
     getLocalPoint: (x, y) => new Point(x, y),
@@ -150,10 +151,13 @@ export class Region {
         this[$parent] = parent;
     }
 
+    /** @returns {number} */
     get id() { return this[$id]; }
 
+    /** @returns {IShape} */
     get shape() { return this[$shape]; }
 
+    /** @returns {*} */
     get data() { return this[$data]; }
 
     /**
@@ -312,14 +316,30 @@ export class Region {
         this[$regions][index + 1] = region;
     }
 
-    findRegionByXY(x, y) {
+    findRegionByXY(x, y, deepSearch) {
         const region = this[$regions].find(r => r.shape.containsPoint(x, y));
         if (!region) {
             return null;
         }
 
+        if (!deepSearch) {
+            return region;
+        }
+
         const localPoint = region.shape.getLocalPoint(x, y);
-        return region.findRegionByXY(localPoint.x, localPoint.y) || region;
+        return region.findRegionByXY(localPoint.x, localPoint.y, true) || region;
+    }
+
+    findAllRegionsByXY(x, y) {
+        const result = [];
+        let point = new Point(x, y);
+        let region = this;
+        while(region = region.findRegionByXY(point.x, point.y, false)) {
+            result.push({ region, point });
+            point = region.shape.getLocalPoint(point.x, point.y);
+        }
+
+        return result;
     }
 
     /**
@@ -346,6 +366,8 @@ function isHandlerValid(handler) {
 }
 
 /** @interface IShape */
+/** @member IShape#x {number} */
+/** @member IShape#y {number} */
 /** @function IShape#containsPoint
  * @param {number} x
  * @param {number} y

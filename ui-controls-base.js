@@ -6,21 +6,34 @@ const $visible = Symbol.for('visible');
 const $enabled = Symbol.for('enabled');
 const $redrawRequired = Symbol.for('redrawRequired');
 
+const $activeControl = Symbol.for('activeControl');
+const $controlUnderMouse = Symbol.for('controlUnderMouse');
+
+export const UIEvents = {
+    mouseIn: 'mouseIn',
+    mouseOut: 'mouseOut',
+    mouseMove: 'mouseMove'
+};
+
 export class UIControl {
     /**
      * @constructor
-     * @param [rect] {IShape}
+     * @param [shape] {IShape}
      */
-    constructor(rect) {
+    constructor(shape) {
         /** @type {UIControl[]} */this.controls = [];
         /** @type {UIControl}   */this.parent = null;
         /** @type {Region}      */this.region = null;
         this[$visible] = true;
         this[$enabled] = true;
         this[$redrawRequired] = true;
-        if (rect) {
-            this.region = Region.create(rect, this);
+        if (shape) {
+            this.region = Region.create(shape, this);
         }
+
+        this.onMouseIn = null;
+        this.onMouseOut = null;
+        this.onMouseMove = null;
     }
 
     get id() { return this.region.id; }
@@ -77,7 +90,7 @@ export class UIControl {
         }
     }
 
-    /**-
+    /**
      * Draws control if required
      * @param ctx {CanvasRenderingContext2D}
      * @param shape {IShape}
@@ -86,10 +99,16 @@ export class UIControl {
     drawIfRequired(ctx, shape, forceRedraw) {
         if (!this.visible) return;
 
-        if (!forceRedraw && !this[$redrawRequired]) return;
-        this[$redrawRequired] = false;
+        const shouldRedraw = forceRedraw || this[$redrawRequired];
+        if (shouldRedraw) {
+            this[$redrawRequired] = false;
+            this.draw(ctx, shape);
+        }
 
-        this.draw(ctx, shape);
+        this.controls.forEach(control => {
+            const relativeShape = control.shape.relate(shape.x, shape.y);
+            control.drawIfRequired(ctx, relativeShape, shouldRedraw);
+        });
     }
 }
 
@@ -100,16 +119,25 @@ export class UIDialog extends UIControl {
         this.isModal = false;
 
         /** @type {UIDialog[]} */ this.modals = [];
+        this[$activeControl] = null;
+        this[$controlUnderMouse] = null;
     }
 }
 
 const $handleRegionEvents = Symbol('handleRegionEvents');
+const $regionsUnderMouse = Symbol.for('regionsUnderMouse');
+
 export class UIControlLayout extends UIControl {
     constructor(shape) {
         super(shape);
         this.region.update(shape, this, this[$handleRegionEvents].bind(this));
 
         /** @type {UIDialog[]} */ this.dialogs = [];
+
+        /** @description List of regions that is currently located under mouse pointer.
+         *  Used to calculate & fire mouseIn\mouseOut events
+         *  @type {Region[]} */
+        this[$regionsUnderMouse] = [];
     }
 
     [$handleRegionEvents](eventName, args) {
@@ -124,14 +152,57 @@ export class UIControlLayout extends UIControl {
     }
 
     handleMouseDown(args) {
-
     }
 
     handleMouseUp(args) {
 
     }
 
+    /**
+     * @param args {MouseEvent}
+     */
     handleMouseMove(args) {
+        const mouseX = args.clientX, mouseY = args.clientY;
 
+        if (!this.region.shape.containsPoint(mouseX, mouseY)) {
+            this.handleCanvasMouseOut();
+        }
+        else {
+            const oldRegions = this[$regionsUnderMouse];
+            const newRegions = this.region.findAllRegionsByXY(mouseX, mouseY);
+            console.log(newRegions);
+            const ml = Math.min(oldRegions.length, newRegions.length);
+            let maxSameLength = 0;
+            while (maxSameLength < ml && oldRegions[maxSameLength].id === newRegions[maxSameLength].id) maxSameLength++;
+
+            for (let i = oldRegions.length - 1; i >= maxSameLength; i--) {
+                const data = oldRegions[i].region.data;
+                data.onMouseOut && data.onMouseOut(args);
+            }
+
+            for (let i = newRegions.length - 1; i >= maxSameLength; i--) {
+                const data = newRegions[i].region.data;
+                data.onMouseIn && data.onMouseIn(args);
+            }
+
+            for (let i = maxSameLength - 1; i >= 0; i--) {
+                const data = newRegions[i].region.data;
+                data.onMouseMove && data.onMouseMove(args);
+            }
+
+            this[$regionsUnderMouse] = newRegions;
+        }
+    }
+
+    handleCanvasMouseOut() {
+        const regionsUnderMouse = this[$regionsUnderMouse];
+        for (let i = regionsUnderMouse.length - 1; i >= 0; i--) {
+            const region = regionsUnderMouse[i];
+            if (region.data.onMouseOut) {
+                region.data.onMouseOut();
+            }
+        }
+
+        this[$regionsUnderMouse] = [];
     }
 }

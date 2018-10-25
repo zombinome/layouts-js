@@ -131,8 +131,6 @@ export class Label extends UIControl {
         this.text = '';
 
         this.style = new LabelStyle();
-
-        this.onClick = null;
     }
 
     /**
@@ -143,20 +141,26 @@ export class Label extends UIControl {
         const style = this.style;
 
         const clientX = rect.x + style.padding;
-        const clientY = rect.y + style.padding;
+        const clientY = rect.y + style.padding + rect.height / 2;
         const clientWidth = rect.width - 2 * style.padding;
+
+        ctx.fillStyle = style.bgColor;
+        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
 
         ctx.font = style.font;
         ctx.fillStyle = style.textColor;
-        ctx.textBaseline = textBaseLine.middle;
+        ctx.textBaseline = textBaseLine.alphabetic;
+        ctx.textAlign = style.textAlign;
         ctx.fillText(this.text, clientX, clientY, clientWidth);
     }
 }
 
 export function LabelStyle() {
+    this.bgColor = '#ddd';
     this.padding = 2;
     this.font = '12px Serif';
     this.textColor = '#000';
+    this.textAlign = textAlign.start;
 }
 
 export class Checkbox extends UIControl {

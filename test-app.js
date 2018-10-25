@@ -1,5 +1,5 @@
-import { Region, Rect } from './regions.js';
-import { UIControl, UIControlLayout } from './ui-controls-base.js';
+import { Rect } from './regions.js';
+import { UIControlLayout } from './ui-controls-base.js';
 import { Dialog, Button, Label, Checkbox } from './ui-controls.js';
 
 const canvasRect = new Rect(0, 0, 800, 600);
@@ -12,6 +12,12 @@ layout.draw = function(ctx, rect) {
     ctx.fillRect(1, 1, rect.width - 2, rect.height - 2);
 };
 
+const colors = [
+    '#000', '#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff', '#fff',
+    '#808080', '#800000', '#008000', '#000080', '#808000', '#800080', '#008080', '#c0c0c0'];
+
+const defaultColors = {};
+
 const mainRegion = layout.region; // new Region(-1, canvasRect, null, null, null);
 
 /**@type {HTMLCanvasElement}*/ let canvasEl;
@@ -19,17 +25,41 @@ const mainRegion = layout.region; // new Region(-1, canvasRect, null, null, null
 
 window.start = function start() {
 
+    function onMouseIn() {
+
+        this.style.bgColor = colors[this.id % colors.length];
+
+        const $redrawRequired = Symbol.for('redrawRequired');
+        this[$redrawRequired] = true;
+    }
+
+    function onMouseOut() {
+        this.style.bgColor = defaultColors[this.id];
+
+        const $redrawRequired = Symbol.for('redrawRequired');
+        this[$redrawRequired] = true;
+    }
+
+    function subscribe(control) {
+        control.onMouseIn = onMouseIn.bind(control);
+        control.onMouseOut = onMouseOut.bind(control);
+        defaultColors[control.id] = control.style.bgColor;
+    }
+
     /** @type {Dialog} */
-    const dialog = layout.add-Control(new Dialog(), new Rect(50, 100, 200, 120));
+    const dialog = layout.addControl(new Dialog(), new Rect(50, 100, 200, 120));
     dialog.title = 'Test dialog';
+    subscribe(dialog);
 
     /** @type {Label} */
-    const label = dialog.addControl(new Label(), new Rect(16, 40, 200, 16));
+    const label = dialog.addControl(new Label(), new Rect(16, 40, 180, 16));
     label.text = 'Test dialog window';
+    subscribe(label);
 
     /** @type {Checkbox} */
     const cb = dialog.addControl(new Checkbox(), new Rect(16, 60, 16, 16));
     cb.checked = true;
+    subscribe(cb);
 
     /** @type {Button} */
     const okButton = dialog.addControl(new Button(), new Rect(26, 90, 80, 24));
@@ -38,6 +68,7 @@ window.start = function start() {
         console.info(this.text + ' button clicked');
         layout.removeControl(dialog.id);
     };
+    subscribe(okButton);
 
     /** @type {Button} */
     const cancelButton = dialog.addControl(new Button(), new Rect(114, 90, 80, 24));
@@ -46,6 +77,7 @@ window.start = function start() {
         console.info(this.text + ' button clicked');
         layout.removeControl(dialog.id);
     };
+    subscribe(cancelButton);
 
     canvasEl = document.querySelector('canvas');
     scaleCanvas(canvasEl, canvasRect.width, canvasRect.height);
@@ -53,25 +85,22 @@ window.start = function start() {
     canvasContext = canvasEl.getContext('2d');
 
     canvasEl.addEventListener('mousemove', args => {
-        const region = mainRegion.findRegionByXY(args.clientX, args.clientY);
+        layout.handleMouseMove(args);
+
+        const region = mainRegion.findRegionByXY(args.clientX, args.clientY, true);
         canvasEl.style.cursor = region && region.data instanceof Button
                                 ? 'pointer'
                                 : 'default';
     });
 
-    canvasEl.addEventListener('click', layout.handleMouseClick.bind(layout));
+    canvasEl.addEventListener("mouseout", () => { layout.handleCanvasMouseOut(); });
 
-    const y = 100;
+    canvasEl.addEventListener('click', layout.ha-ndleMouseClick.bind(layout));
+
     window.requestAnimationFrame(function redraw(timeStamp) {
         window.requestAnimationFrame(redraw);
 
-        // const newX = windowRegion.shape.x;
-        // const newY = y + Math.round(y * Math.sin(timeStamp / 500));
-        // const newW = windowRegion.shape.width;
-        // const newH = windowRegion.shape.height;
-        // windowRegion.update(new Rect(newX, newY, newW, newH));
-
-        renderRegion(canvasContext, layout.region, layout.shape);
+        layout.drawIfRequired(canvasContext, layout.shape, false);
     });
 };
 
@@ -103,37 +132,4 @@ function scaleCanvas(canvasElement, width, height) {
     canvasElement.style.height = height + 'px';
 
     canvasElement.getContext('2d').scale(pixelRatio, pixelRatio);
-}
-
-function renderRegion(canvasContext, region, parentShape) {
-    const shape = region.shape.relate(parentShape.x, parentShape.y);
-    if (typeof region.data.draw === 'function') {
-        region.data.drawIfRequired(canvasContext, shape, false);
-    }
-
-    region.enumRegions(childRegion => renderRegion(canvasContext, childRegion, shape));
-    return true;
-}
-
-/**
- * @param region {Region}
- * @param eventName {string}
- * @param args {MouseEvent}
- */
-function handleMouseEvent(region, eventName, args) {
-    const x = args.clientX;
-    const y = args.clientY;
-
-    if (!region.shape.containsPoint(x, y)) {
-        return;
-    }
-
-    let regionsChain = [region];
-    let childRegion;
-    do {
-        let childRegion = region._regions.find(r => r.shape.containsPoint(x, y));
-        if (childRegion) {
-            regionsChain.push(childRegion);
-        }
-    } while (childRegion);
 }
