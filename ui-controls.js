@@ -24,29 +24,27 @@ export class Dialog extends UIDialog {
     draw(ctx, rect) {
         const style = this.style;
 
-        // drawing control border
-        ctx.strokeStyle = this.style.borderColor;
-        ctx.lineWidth = this.style.borderWidth;
-        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-
         // Drawing dialog header
         const clientX = rect.x + style.borderWidth;
-        const clientY = rect.y + style.borderWidth + style.titleHeight;
         const clientWidth = rect.width - 2 * style.borderWidth;
-        const clientHeight = rect.height - 2 * style.borderWidth - style.titleHeight;
 
         ctx.fillStyle = style.titleBgColor;
-        ctx.fillRect(clientX, rect.y + style.borderWidth, clientWidth, style.titleHeight);
+        ctx.fillRect(rect.x, rect.y, rect.width, style.titleHeight);
 
         ctx.font = style.titleFont;
         ctx.fillStyle = style.titleTextColor;
         ctx.textAlign = style.titleTextAlign;
         ctx.textBaseline = style.titleTextBaseline;
-        ctx.fillText(this.title, clientX + 2, rect.y + style.borderWidth + style.titleHeight / 2, clientWidth - 2);
+        ctx.fillText(this.title, clientX + 2, rect.y + style.titleHeight / 2, clientWidth - 2);
 
         // Drawing main dialog space
         ctx.fillStyle = style.bgColor;
-        ctx.fillRect(clientX, clientY, clientWidth, clientHeight);
+        ctx.fillRect(rect.x, rect.y + style.titleHeight, rect.width, rect.height - style.titleHeight);
+
+        // drawing control border
+        ctx.strokeStyle = this.style.borderColor;
+        ctx.lineWidth = this.style.borderWidth;
+        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
     }
 }
 

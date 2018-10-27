@@ -1,4 +1,4 @@
-import {Region} from './regions.js';
+import {Region, Rect, Circle} from './regions.js';
 
 'use strict';
 
@@ -62,11 +62,13 @@ export class UIControl {
     /**
      * Add new control to current control.
      * Child region created and added to regions hierarchy
-     * @param control {UIControl}
+     * @param control {UIControl|function}
      * @param shape {IShape}
-     * @returns {*}
+     * @returns {UIControl|*}
      */
     addControl(control, shape) {
+        if (typeof control === 'function') control = new control();
+
         control.region = this.region.addRegion(shape, control);
         control.parent = this;
         this.controls.push(control);
@@ -170,10 +172,14 @@ export class UIControlLayout extends UIControl {
         else {
             const oldRegions = this[$regionsUnderMouse];
             const newRegions = this.region.findAllRegionsByXY(mouseX, mouseY);
-            console.log(newRegions);
+
+            // console.log(
+            //     'old: [' + oldRegions.map(r => r.region.id).join('->') + ']',
+            //     'new: [' + newRegions.map(r => r.region.id).join('->') + ']');
             const ml = Math.min(oldRegions.length, newRegions.length);
             let maxSameLength = 0;
-            while (maxSameLength < ml && oldRegions[maxSameLength].id === newRegions[maxSameLength].id) maxSameLength++;
+            while (maxSameLength < ml && oldRegions[maxSameLength].region.id === newRegions[maxSameLength].region.id)
+                maxSameLength++;
 
             for (let i = oldRegions.length - 1; i >= maxSameLength; i--) {
                 const data = oldRegions[i].region.data;
@@ -192,6 +198,8 @@ export class UIControlLayout extends UIControl {
 
             this[$regionsUnderMouse] = newRegions;
         }
+
+        getControlsToRedraw(this, [], this.shape);
     }
 
     handleCanvasMouseOut() {
@@ -205,4 +213,89 @@ export class UIControlLayout extends UIControl {
 
         this[$regionsUnderMouse] = [];
     }
+}
+
+/**
+ * @param control {UIControl}
+ * @param shapes {IShape[]}
+ * @param absoluteTop {Point}
+ */
+function getControlsToRedraw(control, shapes, absoluteTop) {
+    const controlShape = control.shape.relate(absoluteTop.x, absoluteTop.y);
+    if (control[$redrawRequired]) {
+        shapes.push(controlShape);
+        return;
+    }
+
+    if (shapes.some(shape => intersects(shape, control.shape))) {
+        control[$redrawRequired] = true;
+        shapes.push(controlShape);
+        return;
+    }
+
+    if (control.controls || control.controls.length)
+        for(let i = 0; i < control.controls.length; i++)
+            getControlsToRedraw(control.controls[i], shapes, controlShape);
+}
+
+/**
+ * @param shape1 {IShape}
+ * @param shape2 {IShape}
+ * @returns {boolean}
+ */
+function intersects(shape1, shape2) {
+    if (shape1 instanceof Rect) {
+        if (shape2 instanceof Rect)
+            return isIntersect2Rects(shape1, shape2);
+
+        if (shape2 instanceof Circle)
+            return isIntersectRectWithCircle(shape1, shape2);
+    }
+    else if (shape1 instanceof Circle) {
+        if (shape2 instanceof Rect)
+            return isIntersectRectWithCircle(shape2, shape1);
+
+        if (shape2 instanceof Circle)
+            return isIntersect2Circles(shape1, shape2);
+    }
+
+    return false;
+}
+
+/**
+ * @param circle1 {Circle}
+ * @param circle2 {Circle}
+ * @returns {boolean}
+ */
+function isIntersect2Circles(circle1, circle2) {
+    const dx = circle1.x - circle2.x,
+          dy = circle1.y - circle2.y,
+          dr = circle1.radius + circle2.radius;
+
+    return dx * dx + dy * dy <= dr * dr;
+}
+
+/**
+ * @param rect1 {Rect}
+ * @param rect2 {Rect}
+ * @returns {boolean}
+ */
+function isIntersect2Rects(rect1, rect2) {
+    const isOutOfBoundsX = (rect1.x + rect1.width) < rect2.x || (rect2.x + rect2.width) < rect1.x;
+    const isOutOfBoundsY = (rect1.y + rect1.height) < rect2.y || (rect2.y + rect2.height) < rect1.y;
+
+    return !isOutOfBoundsX && !isOutOfBoundsY;
+}
+
+/**
+ * @param rect {Rect}
+ * @param circle {Circle}
+ * @returns {boolean}
+ */
+function isIntersectRectWithCircle(rect, circle) {
+    // https://yal.cc/rectangle-circle-intersection-test/
+    const nearestX = Math.max(rect.x, Math.min(circle.x, rect.x + rect.width)),
+          nearestY = Math.max(rect.y, Math.min(circle.y, rect.y + rect.height));
+
+    return circle.containsPoint(nearestX, nearestY);
 }

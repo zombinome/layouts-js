@@ -1,6 +1,7 @@
 import { Rect } from './regions.js';
 import { UIControlLayout } from './ui-controls-base.js';
 import { Dialog, Button, Label, Checkbox } from './ui-controls.js';
+import { fn } from './compose.js';
 
 const canvasRect = new Rect(0, 0, 800, 600);
 const layout = new UIControlLayout(canvasRect);
@@ -24,60 +25,8 @@ const mainRegion = layout.region; // new Region(-1, canvasRect, null, null, null
 /**@type {CanvasRenderingContext2D}*/ let canvasContext;
 
 window.start = function start() {
-
-    function onMouseIn() {
-
-        this.style.bgColor = colors[this.id % colors.length];
-
-        const $redrawRequired = Symbol.for('redrawRequired');
-        this[$redrawRequired] = true;
-    }
-
-    function onMouseOut() {
-        this.style.bgColor = defaultColors[this.id];
-
-        const $redrawRequired = Symbol.for('redrawRequired');
-        this[$redrawRequired] = true;
-    }
-
-    function subscribe(control) {
-        control.onMouseIn = onMouseIn.bind(control);
-        control.onMouseOut = onMouseOut.bind(control);
-        defaultColors[control.id] = control.style.bgColor;
-    }
-
-    /** @type {Dialog} */
-    const dialog = layout.addControl(new Dialog(), new Rect(50, 100, 200, 120));
-    dialog.title = 'Test dialog';
-    subscribe(dialog);
-
-    /** @type {Label} */
-    const label = dialog.addControl(new Label(), new Rect(16, 40, 180, 16));
-    label.text = 'Test dialog window';
-    subscribe(label);
-
-    /** @type {Checkbox} */
-    const cb = dialog.addControl(new Checkbox(), new Rect(16, 60, 16, 16));
-    cb.checked = true;
-    subscribe(cb);
-
-    /** @type {Button} */
-    const okButton = dialog.addControl(new Button(), new Rect(26, 90, 80, 24));
-    okButton.text = 'OK';
-    okButton.onClick = function() {
-        console.info(this.text + ' button clicked');
-        layout.removeControl(dialog.id);
-    };
-    subscribe(okButton);
-
-    /** @type {Button} */
-    const cancelButton = dialog.addControl(new Button(), new Rect(114, 90, 80, 24));
-    cancelButton.text = 'Cancel';
-    cancelButton.onClick = function() {
-        console.info(this.text + ' button clicked');
-        layout.removeControl(dialog.id);
-    };
-    subscribe(cancelButton);
+    createDialog(layout, 50, 100, 'Test dialog #1');
+    createDialog(layout, 200, 150, 'Test dialog #2');
 
     canvasEl = document.querySelector('canvas');
     scaleCanvas(canvasEl, canvasRect.width, canvasRect.height);
@@ -93,11 +42,11 @@ window.start = function start() {
                                 : 'default';
     });
 
-    canvasEl.addEventListener("mouseout", () => { layout.handleCanvasMouseOut(); });
+    canvasEl.addEventListener("mouseout", layout.handleCanvasMouseOut.bind(layout));
 
-    canvasEl.addEventListener('click', layout.ha-ndleMouseClick.bind(layout));
+    canvasEl.addEventListener('click', layout.handleMouseClick.bind(layout));
 
-    window.requestAnimationFrame(function redraw(timeStamp) {
+    window.requestAnimationFrame(function redraw(/*timeStamp*/) {
         window.requestAnimationFrame(redraw);
 
         layout.drawIfRequired(canvasContext, layout.shape, false);
@@ -133,3 +82,69 @@ function scaleCanvas(canvasElement, width, height) {
 
     canvasElement.getContext('2d').scale(pixelRatio, pixelRatio);
 }
+
+/**
+ * @param layout {UIControlLayout}
+ * @param x {number}
+ * @param y {number}
+ * @param title {string}
+ */
+function createDialog(layout, x ,y, title) {
+    /** @type {Dialog} */
+    const dialog = layout.addControl(Dialog, new Rect(x, y, 200, 120));
+    dialog.title = title;
+    subscribe(dialog);
+
+    /** @type {Label} */
+    const label = dialog.addControl(Label, new Rect(16, 40, 180, 16));
+    label.text = 'Test dialog window';
+    subscribe(label);
+
+    /** @type {Checkbox} */
+    const cb = dialog.addControl(Checkbox, new Rect(16, 60, 16, 16));
+    cb.checked = true;
+    subscribe(cb);
+
+    /** @type {Button} */
+    const okButton = dialog.addControl(Button, new Rect(26, 90, 80, 24));
+    okButton.text = 'OK';
+    okButton.onClick = function() {
+        console.info(this.text + ' button clicked');
+        layout.removeControl(dialog.id);
+    };
+    subscribe(okButton);
+    okButton.onClick = fn.compose2(okButton.onClick, function() {
+        console.info(this.text + ' button clicked');
+        layout.removeControl(dialog.id);
+    });
+
+    /** @type {Button} */
+    const cancelButton = dialog.addControl(Button, new Rect(114, 90, 80, 24));
+    cancelButton.text = 'Cancel';
+    subscribe(cancelButton);
+    cancelButton.onClick = fn.compose2(cancelButton.onClick, function() {
+        console.info(this.text + ' button clicked');
+        layout.removeControl(dialog.id);
+    });
+}
+
+function onMouseIn() {
+    this.style.bgColor = colors[this.id % colors.length];
+
+    const $redrawRequired = Symbol.for('redrawRequired');
+    this[$redrawRequired] = true;
+}
+
+function onMouseOut() {
+    this.style.bgColor = defaultColors[this.id];
+
+    const $redrawRequired = Symbol.for('redrawRequired');
+    this[$redrawRequired] = true;
+}
+
+function subscribe(control) {
+    control.onMouseIn = onMouseIn.bind(control);
+    control.onMouseOut = onMouseOut.bind(control);
+    defaultColors[control.id] = control.style.bgColor;
+}
+

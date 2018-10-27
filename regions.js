@@ -74,11 +74,13 @@ export class Circle {
         /**@type {number}*/ this.x = x;
         /**@type {number}*/ this.y = y;
         /**@type {number}*/ this.radius = radius;
-
-        const rr = radius + radius;
-        this._boundRect = new Rect(x - radius, y - radius, rr, rr);
     }
 
+    /**
+     * @param x {number}
+     * @param y {number}
+     * @returns {boolean}
+     */
     containsPoint(x, y) {
         const dx = this.x - x,
             dy = this.y - y,
@@ -86,18 +88,35 @@ export class Circle {
         return r * r >= (dx * dx + dy * dy);
     }
 
+    /**
+     * @param x {number}
+     * @param y {number}
+     * @returns {Circle}
+     */
     relate(x, y) {
         return new Circle(this.x + x, this.y + y, this.radius);
     }
 
+    /**
+     * @param x {number}
+     * @param y {number}
+     * @returns {Point}
+     */
     getLocalPoint(x, y) {
         return new Point(x - this.x, y - this.y);
     }
 
+    /**
+     * @param other {IEquatable}
+     * @returns {boolean}
+     */
     equals(other) {
         return this.getHash() === other.getHash();
     }
 
+    /**
+     * @returns {number}
+     */
     getHash() {
         if (!this[$hash]) {
             let hash = 17;
@@ -317,7 +336,15 @@ export class Region {
     }
 
     findRegionByXY(x, y, deepSearch) {
-        const region = this[$regions].find(r => r.shape.containsPoint(x, y));
+        let region = null;
+        for (let i = this[$regions].length - 1; i >= 0; i--) {
+            let r = this[$regions][i];
+            if (r.shape.containsPoint(x, y)){
+                region = r;
+                break;
+            }
+        }
+
         if (!region) {
             return null;
         }
@@ -335,7 +362,7 @@ export class Region {
         let point = new Point(x, y);
         let region = this;
         while(region = region.findRegionByXY(point.x, point.y, false)) {
-            result.push({ region, point });
+            result.push({ region, absoluteLocation: point });
             point = region.shape.getLocalPoint(point.x, point.y);
         }
 
