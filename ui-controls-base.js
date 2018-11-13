@@ -9,6 +9,9 @@ const $redrawRequired = Symbol.for('redrawRequired');
 const $activeControl = Symbol.for('activeControl');
 const $controlUnderMouse = Symbol.for('controlUnderMouse');
 
+const $parentStyle = Symbol.for('parentStyle');
+const $defaultValues = Symbol.for('defaultValues');
+
 export const UIEvents = {
     mouseIn: 'mouseIn',
     mouseOut: 'mouseOut',
@@ -30,6 +33,8 @@ export class UIControl {
         if (shape) {
             this.region = Region.create(shape, this);
         }
+
+        this.style = null;
 
         this.onMouseIn = null;
         this.onMouseOut = null;
@@ -170,7 +175,6 @@ export class UIControlLayout extends UIControl {
         else {
             const oldRegions = this[$regionsUnderMouse];
             const newRegions = this.region.findAllRegionsByXY(mouseX, mouseY);
-            console.log(newRegions);
             const ml = Math.min(oldRegions.length, newRegions.length);
             let maxSameLength = 0;
             while (maxSameLength < ml && oldRegions[maxSameLength].id === newRegions[maxSameLength].id) maxSameLength++;

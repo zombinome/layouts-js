@@ -1,11 +1,22 @@
 'use strict';
 
-import {textAlign, textBaseLine} from './ui-constants.js';
+import { textAlign, textBaseLine, defaultTheme } from './ui-constants.js';
 import { UIControl, UIDialog } from './ui-controls-base.js';
 
 const $state = Symbol('state');
 const $checked = Symbol('checked');
 const $redrawRequired = Symbol.for('redrawRequired');
+const $text = Symbol('text');
+
+function UIControlStyle() {
+    this.font = '12px Serif';
+    this.bgColor = '#ddd';
+    this.textColor = '#000';
+}
+
+const $font = Symbol('font'),
+    $bgColor = Symbol('bgColor'),
+    $textColor = Symbol('textColor');
 
 export class Dialog extends UIDialog {
     constructor() {
@@ -111,18 +122,28 @@ export class Button extends UIControl {
     }
 }
 
-export function ButtonStyle() {
-    // Border
-    this.borderWidth = 1;
-    this.borderColor = '#555';
+export class ButtonStyle {
+    constructor() {//parentStyle) {
+        //this.parentStyle = parentStyle || {};
 
-    // Control area
-    this.padding = 2;
-    this.font = '12px Serif';
-    this.bgColor = '#ddd';
-    this.textColor = '#000';
-    this.textAlign = textAlign.center;
-    this.textBaseLine = textBaseLine.middle;
+        // Border
+        this.borderWidth = 1;
+        this.borderColor = '#555';
+
+        // Control area
+        this.padding = 2;
+        this.font = defaultTheme.controlFont;
+        this.bgColor = '#ddd';
+        this.textColor = '#000';
+        this.textAlign = textAlign.center;
+        this.textBaseLine = textBaseLine.middle;
+    }
+
+    // get font() { return this[$font] || this.parentStyle.font || defaultTheme.windowTitleFont; }
+    // set font(value) { this[$font] = value; }
+    //
+    // get bgColor() { return this[$bgColor] || this.parentStyle.bgColor || defaultTheme.controlActiveBgColor; }
+    // set bgColor(value) { this[$bgColor] = value; }
 }
 
 export class Label extends UIControl {
@@ -230,4 +251,41 @@ export function CheckboxStyle() {
     this.color = '#000';
     this.bgColor = '#fff';
     this.bgHighlightedColor = '#ddd';
+}
+
+export class TextEdit extends UIControl {
+    constructor() {
+        super();
+
+        this[$text] = '';
+
+        this.style = new TextEditStyle();
+    }
+
+    get text() { return this[$text]; }
+    set text(value) {
+        this[$text] = value;
+        this._updateControl();
+    }
+
+    _updateControl() {
+        throw 'Not implemented yet';
+    }
+
+    draw(ctx, shape) {
+        const style = this.style;
+
+        throw 'Not implemented yet';
+        // ctx.save();
+        // ctx.beginPath();
+        // ctx.rect(leftAxisBorder, 0, canvas.width - leftAxisBorder, canvas.height);
+        // ctx.clip();
+        // ctx.font = font;
+        // ctx.fillText(theText, 3, 50);
+        // ctx.restore();
+    }
+}
+
+export function TextEditStyle() {
+    this.font = defaultTheme.controlFont;
 }

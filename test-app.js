@@ -1,3 +1,4 @@
+import { scaleCanvas } from "./canvasUtils.js";
 import { Rect } from './regions.js';
 import { UIControlLayout } from './ui-controls-base.js';
 import { Dialog, Button, Label, Checkbox } from './ui-controls.js';
@@ -24,27 +25,6 @@ const mainRegion = layout.region; // new Region(-1, canvasRect, null, null, null
 /**@type {CanvasRenderingContext2D}*/ let canvasContext;
 
 window.start = function start() {
-
-    function onMouseIn() {
-
-        this.style.bgColor = colors[this.id % colors.length];
-
-        const $redrawRequired = Symbol.for('redrawRequired');
-        this[$redrawRequired] = true;
-    }
-
-    function onMouseOut() {
-        this.style.bgColor = defaultColors[this.id];
-
-        const $redrawRequired = Symbol.for('redrawRequired');
-        this[$redrawRequired] = true;
-    }
-
-    function subscribe(control) {
-        control.onMouseIn = onMouseIn.bind(control);
-        control.onMouseOut = onMouseOut.bind(control);
-        defaultColors[control.id] = control.style.bgColor;
-    }
 
     /** @type {Dialog} */
     const dialog = layout.addControl(new Dialog(), new Rect(50, 100, 200, 120));
@@ -95,7 +75,7 @@ window.start = function start() {
 
     canvasEl.addEventListener("mouseout", () => { layout.handleCanvasMouseOut(); });
 
-    canvasEl.addEventListener('click', layout.ha-ndleMouseClick.bind(layout));
+    canvasEl.addEventListener('click', layout.handleMouseClick.bind(layout));
 
     window.requestAnimationFrame(function redraw(timeStamp) {
         window.requestAnimationFrame(redraw);
@@ -104,32 +84,23 @@ window.start = function start() {
     });
 };
 
-/**
- * Based on:
- * https://stackoverflow.com/questions/15661339/how-do-i-fix-blurry-text-in-my-html5-canvas
- * @param [canvasElement] {HTMLCanvasElement}
- * @returns {number} pixel ratio
- */
-function getPixelRatio(canvasElement) {
-    const ctx = (canvasElement || document.createElement('canvas')).getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    // noinspection SpellCheckingInspection
-    const bspr = ctx.webkitBackingStorePixelRatio ||
-        ctx.mozBackingStorePixelRatio ||
-        ctx.msBackingStorePixelRatio ||
-        ctx.oBackingStorePixelRatio ||
-        ctx.backingStorePixelRatio || 1;
+function onMouseIn() {
 
-    return dpr / bspr;
+    this.style.bgColor = colors[this.id % colors.length];
+
+    const $redrawRequired = Symbol.for('redrawRequired');
+    this[$redrawRequired] = true;
 }
 
-function scaleCanvas(canvasElement, width, height) {
-    const pixelRatio = getPixelRatio(canvasElement);
+function onMouseOut() {
+    this.style.bgColor = defaultColors[this.id];
 
-    canvasElement.width = width * pixelRatio;
-    canvasElement.height = height * pixelRatio;
-    canvasElement.style.width = width + 'px';
-    canvasElement.style.height = height + 'px';
+    const $redrawRequired = Symbol.for('redrawRequired');
+    this[$redrawRequired] = true;
+}
 
-    canvasElement.getContext('2d').scale(pixelRatio, pixelRatio);
+function subscribe(control) {
+    control.onMouseIn = onMouseIn.bind(control);
+    control.onMouseOut = onMouseOut.bind(control);
+    defaultColors[control.id] = control.style.bgColor;
 }
