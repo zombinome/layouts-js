@@ -1,4 +1,4 @@
-import {Region} from './regions.js';
+import {Region} from '../regions.js';
 
 'use strict';
 
@@ -210,3 +210,10 @@ export class UIControlLayout extends UIControl {
         this[$regionsUnderMouse] = [];
     }
 }
+
+export const backgroundImagePosition = {
+    center: 'center',
+    stretch: 'stretch',
+    fit: 'fit',
+    fill: 'fill'
+};

@@ -1,7 +1,7 @@
 import { scaleCanvas } from "./canvasUtils.js";
 import { Rect } from './regions.js';
-import { UIControlLayout } from './ui-controls-base.js';
-import { Dialog, Button, Label, Checkbox } from './ui-controls.js';
+import { UIControlLayout } from './ui/ui-controls-base.js';
+import { Dialog, Button, Label, Checkbox } from './ui/ui-controls.js';
 
 const canvasRect = new Rect(0, 0, 800, 600);
 const layout = new UIControlLayout(canvasRect);
