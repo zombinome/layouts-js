@@ -1,4 +1,6 @@
-import {Region} from '../regions.js';
+import { Region } from '../regions.js';
+import { imageHelpers } from "./ui-helpers.js";
+import { Rect } from "../regions.js";
 
 'use strict';
 
@@ -9,8 +11,8 @@ const $redrawRequired = Symbol.for('redrawRequired');
 const $activeControl = Symbol.for('activeControl');
 const $controlUnderMouse = Symbol.for('controlUnderMouse');
 
-const $parentStyle = Symbol.for('parentStyle');
-const $defaultValues = Symbol.for('defaultValues');
+//const $parentStyle = Symbol.for('parentStyle');
+//const $defaultValues = Symbol.for('defaultValues');
 
 export const UIEvents = {
     mouseIn: 'mouseIn',
@@ -217,3 +219,81 @@ export const backgroundImagePosition = {
     fit: 'fit',
     fill: 'fill'
 };
+
+const $color = Symbol.for('color'),
+    $imageSource = Symbol.for('imageSource'),
+    $imageRect = Symbol.for('imageRect'),
+    $imagePosition = Symbol.for('imagePosition'),
+    $owner = Symbol.for('owner');
+
+/**
+ *
+ * @param owner {UIControl}
+ * @param color {string}
+ * @param [imageSource] {HTMLCanvasElement|HTMLImageElement|ImageBitmap}
+ * @param [imageRect] {Rect}
+ * @param [imagePosition] {backgroundImagePosition}
+ * @constructor
+ */
+export class UIBackgroundStyle {
+    constructor(owner, color, imageSource, imageRect, imagePosition) {
+        this[$owner] = owner;
+        this[$color] = color || null;
+        this[$imageSource] = imageSource || null;
+        this[$imageRect] = imageRect || (imageSource ? imageHelpers.getImageRect(imageSource) : null);
+        this[$imagePosition] = imagePosition || backgroundImagePosition.center;
+    }
+
+    get color() { return this[$color]; }
+    set color(value) {
+        if (this[$color] !== value) {
+            this[$color] = value;
+            this[$owner][$redrawRequired] = true;
+        }
+    }
+
+    get image() { return this[$imageSource]; }
+    set image(value) {
+        if (this[$imageSource] !== value) {
+            this[$imageSource] = value;
+            this[$owner][$redrawRequired] = true;
+        }
+    }
+
+    get imageRect() { return this[$imageRect]; }
+    set imageRect(value) {
+        if (this[$imageRect] !== value) {
+            this[$imageRect] = value;
+            this[$owner][$redrawRequired] = true;
+        }
+    }
+
+    get imagePosition() { return this[$imagePosition]; }
+    set imagePosition(value) {
+        if (this[$imagePosition] !== value) {
+            this[$imagePosition] = value;
+            this[$owner][$redrawRequired] = true;
+        }
+    }
+
+    /**
+     * @param ctx {CanvasRenderingContext2D}
+     * @param x {number}
+     * @param y {number}
+     * @param width {number}
+     * @param height {number}
+     */
+    draw(ctx, x, y, width, height) {
+        if (this[$color] && this[$color] !== 'transparent') {
+            ctx.fillStyle = this[$color];
+            ctx.fillRect(x, y, width, height);
+        }
+
+        if (this[$imageSource]) {
+            const sourceRect = this[$imageRect]
+                || (this[$imageSource] ? imageHelpers.getImageRect(this[$imageSource]) : null);
+            const destRect = new Rect(x, y, width, height);
+            imageHelpers.drawImage(ctx, this[$imageSource], sourceRect, destRect, this[$imagePosition]);
+        }
+    }
+}

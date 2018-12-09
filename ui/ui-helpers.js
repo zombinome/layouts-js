@@ -3,7 +3,7 @@ import {Rect} from "../regions.js";
 
 'use strict';
 
-const imageHelpers = {
+export const imageHelpers = {
     /**
      * @param ctx {CanvasRenderingContext2D}
      * @param imageSource {HTMLCanvasElement|HTMLImageElement|ImageBitmap}
@@ -31,6 +31,19 @@ const imageHelpers = {
                 drawImageWithFillPosition(ctx, imageSource, sourceRect, destRect);
                 break;
         }
+    },
+
+    /**
+     * @param imageSource {HTMLCanvasElement|HTMLImageElement|ImageBitmap}
+     */
+    getImageRect(imageSource) {
+        if (imageSource instanceof HTMLImageElement
+        || imageSource instanceof HTMLCanvasElement
+        || imageSource instanceof ImageBitmap) {
+            return new Rect(0, 0, imageSource.width, imageSource.height);
+        }
+
+        throw new Error('Unsupported ImageSource');
     }
 };
 
@@ -75,7 +88,7 @@ function drawImageWithCenterPosition(ctx, imageSource, sourceRect, destRect) {
 
     ctx.drawImage(imageSource,
         sourceX, sourceY, sourceWidth, sourceHeight,
-        destX, destY, destRect.width, destRect.height);
+        destX, destY, destWidth, destHeight);
 }
 
 /**
@@ -90,12 +103,12 @@ function drawImageWithFitPosition(ctx, imageSource, sourceRect, destRect) {
 
     const scale = Math.min(destRect.height / sourceRect.height, destRect.width / sourceRect.width);
 
-    const destWidth = destRect.width * scale;
+    const destWidth = sourceRect.width * scale;
     if (destWidth < destRect.width) {
         destX += (destRect.width - destWidth) / 2;
     }
 
-    const destHeight = destRect.height * scale;
+    const destHeight = sourceRect.height * scale;
     if (destHeight < destRect.height) {
         destY += (destRect.height - destHeight) / 2;
     }
@@ -112,7 +125,22 @@ function drawImageWithFitPosition(ctx, imageSource, sourceRect, destRect) {
  * @param destRect {Rect}
  */
 function drawImageWithFillPosition(ctx, imageSource, sourceRect, destRect) {
-    const scale = Math.max(destRect.height / sourceRect.height, destRect.width / sourceRect.width);
+    let sourceX = sourceRect.x,
+        sourceY = sourceRect.y;
 
+    const scale = Math.min(sourceRect.height / destRect.height, sourceRect.width / destRect.width);
 
+    const sourceWidth = destRect.width * scale;
+    if (sourceWidth < sourceRect.width) {
+        sourceX += (sourceRect.width - sourceWidth) / 2;
+    }
+
+    const sourceHeight = destRect.height * scale;
+    if (sourceHeight < sourceRect.height) {
+        sourceY += (sourceRect.height - sourceHeight) / 2;
+    }
+
+    ctx.drawImage(imageSource,
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        destRect.x, destRect.y, destRect.width, destRect.height);
 }

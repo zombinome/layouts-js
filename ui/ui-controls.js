@@ -1,29 +1,30 @@
 'use strict';
 
 import { textAlign, textBaseLine, defaultTheme } from './ui-constants.js';
-import { UIControl, UIDialog } from './ui-controls-base.js';
+import { UIControl, UIDialog, UIBackgroundStyle } from './ui-controls-base.js';
+import { Rect } from "../regions.js";
 
 const $state = Symbol('state');
 const $checked = Symbol('checked');
 const $redrawRequired = Symbol.for('redrawRequired');
 const $text = Symbol('text');
 
-function UIControlStyle() {
-    this.font = '12px Serif';
-    this.bgColor = '#ddd';
-    this.textColor = '#000';
-}
+// function UIControlStyle() {
+//     this.font = '12px Serif';
+//     this.bgColor = '#ddd';
+//     this.textColor = '#000';
+// }
 
-const $font = Symbol('font'),
-    $bgColor = Symbol('bgColor'),
-    $textColor = Symbol('textColor');
+// const $font = Symbol('font'),
+//     $bgColor = Symbol('bgColor'),
+//     $textColor = Symbol('textColor');
 
 export class Dialog extends UIDialog {
     constructor() {
         super();
         this.title = '';
 
-        this.style = new DialogStyle();
+        this.style = new DialogStyle(this);
 
         this.onClick = null;
     }
@@ -56,12 +57,15 @@ export class Dialog extends UIDialog {
         ctx.fillText(this.title, clientX + 2, rect.y + style.borderWidth + style.titleHeight / 2, clientWidth - 2);
 
         // Drawing main dialog space
-        ctx.fillStyle = style.bgColor;
-        ctx.fillRect(clientX, clientY, clientWidth, clientHeight);
+        style.background.draw(ctx, clientX, clientY, clientWidth, clientHeight);
     }
 }
 
-export function DialogStyle() {
+/**
+ * @param owner {UIDialog}
+ * @constructor
+ */
+export function DialogStyle(owner) {
     // Border
     this.borderWidth = 1;
     this.borderColor = '#555';
@@ -76,7 +80,7 @@ export function DialogStyle() {
 
     // Control area
     ////this.font = '12px Serif';
-    this.bgColor = '#ddd';
+    this.background = new UIBackgroundStyle(owner, '#ddd');
 }
 
 export class Button extends UIControl {
@@ -86,7 +90,7 @@ export class Button extends UIControl {
         this.text = '';
 
         // styles
-        this.style = new ButtonStyle();
+        this.style = new ButtonStyle(this);
 
         // event handlers
         this.onClick = null;
@@ -103,13 +107,13 @@ export class Button extends UIControl {
         ctx.lineWidth = style.borderWidth;
 
         ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-        ctx.fillStyle = style.bgColor;
 
         const clientX = rect.x + style.borderWidth;
         const clientY = rect.y + style.borderWidth;
         const clientWidth = rect.width - 2 * style.borderWidth;
         const clientHeight = rect.height - 2 * style.borderWidth;
-        ctx.fillRect(clientX, clientY, clientWidth, clientHeight);
+
+        style.background.draw(ctx, clientX, clientY, clientWidth, clientHeight);
 
         const measure = ctx.measureText(this.text);
         const textX = clientX + (clientWidth - measure.width) / 2;
@@ -123,7 +127,10 @@ export class Button extends UIControl {
 }
 
 export class ButtonStyle {
-    constructor() {//parentStyle) {
+    /**
+     * @param owner {Button}
+     */
+    constructor(owner) {
         //this.parentStyle = parentStyle || {};
 
         // Border
@@ -133,10 +140,11 @@ export class ButtonStyle {
         // Control area
         this.padding = 2;
         this.font = defaultTheme.controlFont;
-        this.bgColor = '#ddd';
         this.textColor = '#000';
         this.textAlign = textAlign.center;
         this.textBaseLine = textBaseLine.middle;
+
+        this.background = new UIBackgroundStyle(owner, '#ddd');
     }
 
     // get font() { return this[$font] || this.parentStyle.font || defaultTheme.windowTitleFont; }
@@ -151,7 +159,7 @@ export class Label extends UIControl {
         super();
         this.text = '';
 
-        this.style = new LabelStyle();
+        this.style = new LabelStyle(this);
     }
 
     /**
@@ -165,8 +173,7 @@ export class Label extends UIControl {
         const clientY = rect.y + style.padding + rect.height / 2;
         const clientWidth = rect.width - 2 * style.padding;
 
-        ctx.fillStyle = style.bgColor;
-        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+        style.background.draw(ctx, rect.x, rect.y, rect.width, rect.height);
 
         ctx.font = style.font;
         ctx.fillStyle = style.textColor;
@@ -176,12 +183,16 @@ export class Label extends UIControl {
     }
 }
 
-export function LabelStyle() {
-    this.bgColor = '#ddd';
+/**
+ * @param owner {Label}
+ * @constructor
+ */
+export function LabelStyle(owner) {
     this.padding = 2;
     this.font = '12px Serif';
     this.textColor = '#000';
     this.textAlign = textAlign.start;
+    this.background = new UIBackgroundStyle(owner);
 }
 
 export class Checkbox extends UIControl {
@@ -269,6 +280,7 @@ export class TextEdit extends UIControl {
     }
 
     _updateControl() {
+        this[$redrawRequired] = true;
         throw 'Not implemented yet';
     }
 
