@@ -3,6 +3,43 @@ import {Rect} from "../regions.js";
 
 'use strict';
 
+/**
+ * Based on:
+ * https://stackoverflow.com/questions/15661339/how-do-i-fix-blurry-text-in-my-html5-canvas
+ * @param [canvasElement] {HTMLCanvasElement}
+ * @returns {number} pixel ratio
+ */
+export function getPixelRatio(canvasElement) {
+    // /**@type {CanvasRenderingContext2D}*/
+    // const ctx = (canvasElement || document.createElement('canvas')).getContext('2d');
+    // const dpr = window.devicePixelRatio || 1;
+    // // noinspection SpellCheckingInspection
+    // const bspr = ctx.webkitBackingStorePixelRatio ||
+    //     ctx.mozBackingStorePixelRatio ||
+    //     ctx.msBackingStorePixelRatio ||
+    //     ctx.oBackingStorePixelRatio ||
+    //     ctx.backingStorePixelRatio || 1;
+    //
+    // return dpr / bspr;
+    return window.devicePixelRatio || 1;
+}
+
+/**
+ * @param canvasElement {HTMLCanvasElement}
+ * @param width {number}
+ * @param height {number}
+ */
+export function scaleCanvas(canvasElement, width, height) {
+    const pixelRatio = getPixelRatio(canvasElement);
+
+    canvasElement.width = width * pixelRatio;
+    canvasElement.height = height * pixelRatio;
+    canvasElement.style.width = width + 'px';
+    canvasElement.style.height = height + 'px';
+
+    canvasElement.getContext('2d').scale(pixelRatio, pixelRatio);
+}
+
 export const imageHelpers = {
     /**
      * @param ctx {CanvasRenderingContext2D}
@@ -143,4 +180,36 @@ function drawImageWithFillPosition(ctx, imageSource, sourceRect, destRect) {
     ctx.drawImage(imageSource,
         sourceX, sourceY, sourceWidth, sourceHeight,
         destRect.x, destRect.y, destRect.width, destRect.height);
+}
+
+const screenScale = getPixelRatio(null);
+const canvasScale = 1 / screenScale;
+
+function normalizeRect(rect, maxWidth, maxHeight) {
+    if (screenScale === 1) {
+        return rect;
+    }
+
+    let newWidth = rect.width * canvasScale,
+        newHeight = rect.height * canvasScale,
+        newX, newY;
+
+    if (newWidth > maxWidth) {
+        newWidth = maxWidth;
+        newX = 0;
+    } else {
+        const widthDelta = (newWidth - rect.width) / 2;
+        newX = rect.x - widthDelta;
+    }
+
+    if (newHeight > maxHeight) {
+        newHeight = maxHeight;
+        newX = 0;
+    } else {
+        const heightDelta = (newHeight - rect.height) / 2;
+        newY = rect.y - heightDelta;
+
+    }
+
+    return new Rect(newX, newY, newWidth, newHeight);
 }

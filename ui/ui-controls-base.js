@@ -131,88 +131,6 @@ export class UIDialog extends UIControl {
     }
 }
 
-const $handleRegionEvents = Symbol('handleRegionEvents');
-const $regionsUnderMouse = Symbol.for('regionsUnderMouse');
-
-export class UIControlLayout extends UIControl {
-    constructor(shape) {
-        super(shape);
-        this.region.update(shape, this, this[$handleRegionEvents].bind(this));
-
-        /** @type {UIDialog[]} */ this.dialogs = [];
-
-        /** @description List of regions that is currently located under mouse pointer.
-         *  Used to calculate & fire mouseIn\mouseOut events
-         *  @type {Region[]} */
-        this[$regionsUnderMouse] = [];
-    }
-
-    [$handleRegionEvents](eventName, args) {
-
-    };
-
-    handleMouseClick(args) {
-        const region = this.region.findRegionByXY(args.clientX, args.clientY);
-        if (region && region.data.onClick) {
-            region.data.onClick(args);
-        }
-    }
-
-    handleMouseDown(args) {
-    }
-
-    handleMouseUp(args) {
-
-    }
-
-    /**
-     * @param args {MouseEvent}
-     */
-    handleMouseMove(args) {
-        const mouseX = args.clientX, mouseY = args.clientY;
-
-        if (!this.region.shape.containsPoint(mouseX, mouseY)) {
-            this.handleCanvasMouseOut();
-        }
-        else {
-            const oldRegions = this[$regionsUnderMouse];
-            const newRegions = this.region.findAllRegionsByXY(mouseX, mouseY);
-            const ml = Math.min(oldRegions.length, newRegions.length);
-            let maxSameLength = 0;
-            while (maxSameLength < ml && oldRegions[maxSameLength].id === newRegions[maxSameLength].id) maxSameLength++;
-
-            for (let i = oldRegions.length - 1; i >= maxSameLength; i--) {
-                const data = oldRegions[i].region.data;
-                data.onMouseOut && data.onMouseOut(args);
-            }
-
-            for (let i = newRegions.length - 1; i >= maxSameLength; i--) {
-                const data = newRegions[i].region.data;
-                data.onMouseIn && data.onMouseIn(args);
-            }
-
-            for (let i = maxSameLength - 1; i >= 0; i--) {
-                const data = newRegions[i].region.data;
-                data.onMouseMove && data.onMouseMove(args);
-            }
-
-            this[$regionsUnderMouse] = newRegions;
-        }
-    }
-
-    handleCanvasMouseOut() {
-        const regionsUnderMouse = this[$regionsUnderMouse];
-        for (let i = regionsUnderMouse.length - 1; i >= 0; i--) {
-            const region = regionsUnderMouse[i];
-            if (region.data.onMouseOut) {
-                region.data.onMouseOut();
-            }
-        }
-
-        this[$regionsUnderMouse] = [];
-    }
-}
-
 export const backgroundImagePosition = {
     center: 'center',
     stretch: 'stretch',
@@ -244,7 +162,10 @@ export class UIBackgroundStyle {
         this[$imagePosition] = imagePosition || backgroundImagePosition.center;
     }
 
+    /** @returns {string} */
     get color() { return this[$color]; }
+
+    /** @param value {string} */
     set color(value) {
         if (this[$color] !== value) {
             this[$color] = value;
@@ -252,7 +173,10 @@ export class UIBackgroundStyle {
         }
     }
 
+    /** @returns {HTMLCanvasElement|HTMLImageElement|ImageBitmap} */
     get image() { return this[$imageSource]; }
+
+    /** @param value {HTMLCanvasElement|HTMLImageElement|ImageBitmap} */
     set image(value) {
         if (this[$imageSource] !== value) {
             this[$imageSource] = value;
@@ -260,7 +184,10 @@ export class UIBackgroundStyle {
         }
     }
 
+    /** @returns {Rect} */
     get imageRect() { return this[$imageRect]; }
+
+    /** @param value {Rect} */
     set imageRect(value) {
         if (this[$imageRect] !== value) {
             this[$imageRect] = value;
@@ -268,7 +195,10 @@ export class UIBackgroundStyle {
         }
     }
 
+    /** @returns {backgroundImagePosition.center|backgroundImagePosition.fill|backgroundImagePosition.fit|backgroundImagePosition.stretch} */
     get imagePosition() { return this[$imagePosition]; }
+
+    /** @param value {backgroundImagePosition.center|backgroundImagePosition.fill|backgroundImagePosition.fit|backgroundImagePosition.stretch} */
     set imagePosition(value) {
         if (this[$imagePosition] !== value) {
             this[$imagePosition] = value;
