@@ -52,17 +52,20 @@ export class UIControlLayout extends UIControl {
 
             for (let i = oldRegions.length - 1; i >= maxSameLength; i--) {
                 const data = oldRegions[i].region.data;
-                data.onMouseOut && data.onMouseOut(args);
+                data.fireEvent('mouseOut', args);
+                ////data.onMouseOut && data.onMouseOut(args);
             }
 
             for (let i = newRegions.length - 1; i >= maxSameLength; i--) {
                 const data = newRegions[i].region.data;
-                data.onMouseIn && data.onMouseIn(args);
+                data.fireEvent('mouseId', args);
+                ////data.onMouseIn && data.onMouseIn(args);
             }
 
             for (let i = maxSameLength - 1; i >= 0; i--) {
                 const data = newRegions[i].region.data;
-                data.onMouseMove && data.onMouseMove(args);
+                data.fireEvent('mouseMove', args);
+                ////data.onMouseMove && data.onMouseMove(args);
             }
 
             this[$regionsUnderMouse] = newRegions;

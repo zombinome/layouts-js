@@ -11,6 +11,8 @@ const $redrawRequired = Symbol.for('redrawRequired');
 const $activeControl = Symbol.for('activeControl');
 const $controlUnderMouse = Symbol.for('controlUnderMouse');
 
+const $eventHandlers = Symbol.for('eventHandlers');
+
 //const $parentStyle = Symbol.for('parentStyle');
 //const $defaultValues = Symbol.for('defaultValues');
 
@@ -36,6 +38,7 @@ export class UIControl {
             this.region = Region.create(shape, this);
         }
 
+        this[$eventHandlers] = {};
         this.style = null;
 
         this.onMouseIn = null;
@@ -116,6 +119,51 @@ export class UIControl {
             const relativeShape = control.shape.relate(shape.x, shape.y);
             control.drawIfRequired(ctx, relativeShape, shouldRedraw);
         });
+    }
+
+    /**
+     * Adds event handler to control
+     * @param event {string}
+     * @param handler {function}
+     * @param [context] {*}
+     * @returns {function}
+     */
+    on(event, handler, context) {
+        const eh = this[$eventHandlers];
+
+        const block = { handler, context: context || null };
+
+        if (!eh.hasOwnProperty(event)) {
+            eh[event] = [];
+        }
+
+        eh[event].push(block);
+
+        return () => { this.off(event, handler); }
+    }
+
+    off(event, handler) {
+        const eh = this[$eventHandlers];
+        if (!eh.hasOwnProperty(event)) {
+            return;
+        }
+
+        const idx = eh[event].findIndex(x => x.handler === handler);
+        if (idx < 0) {
+            return;
+        }
+
+        eh[event].splice(idx, 1);
+    }
+
+    fireEvent(event, args) {
+        const handlers = this[$eventHandlers][event];
+        if (handlers && handlers.length) {
+            for(let i = 0; i < handlers.length; i++) {
+                const block = handlers[i];
+                block.handler.call(block.context, this, args);
+            }
+        }
     }
 }
 

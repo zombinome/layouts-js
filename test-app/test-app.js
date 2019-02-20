@@ -41,8 +41,8 @@ window.start = function start() {
 
     canvasContext = canvasEl.getContext('2d');
 
-    //demoDialogWithControls(layout);
-    demoWithBackgroundImagePosition(layout, canvasContext);
+    demoDialogWithControls(layout, canvasContext);
+    //demoWithBackgroundImagePosition(layout, canvasContext);
     //demoForImageScalingCheck(layout, canvasContext);
 
     canvasEl.addEventListener('mousemove', args => {
@@ -79,8 +79,8 @@ function onMouseOut() {
 }
 
 function subscribe(control) {
-    control.onMouseIn = onMouseIn.bind(control);
-    control.onMouseOut = onMouseOut.bind(control);
+    control.on('mouseIn', onMouseIn, control);
+    control.on ('mouseOut', onMouseOut, control);
     defaultColors[control.id] = control.style.bgColor;
 }
 
@@ -97,7 +97,7 @@ function loadImage(url) {
 /**
  * @param layout {UIControlLayout}
  */
-function demoDialogWithControls(layout) {
+function demoDialogWithControls(layout, canvasContext) {
     /** @type {Dialog} */
     const dialog = layout.addControl(new Dialog(), new Rect(10, 10, 200, 120));
     dialog.title = 'Test dialog';
