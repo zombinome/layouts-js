@@ -235,7 +235,7 @@ export class Checkbox extends UIControl {
         ctx.strokeRect(rect.x, rect.y, size, size);
 
         // Draw cb background
-        ctx.fillStyle = this[$state] === 0 || this[$state] === 2 ? style.bgColor : style.bgHighlightedColor;
+        ctx.fillStyle = this[$state] === 0 || this[$state] === 2 ? style.background.color : style.bgHighlightedColor;
         ctx.fillRect(rect.x + bw, rect.y + bw, size - bw2, size - bw2);
 
         if (this.checked) {
@@ -257,11 +257,11 @@ export class Checkbox extends UIControl {
     }
 }
 
-export function CheckboxStyle() {
+export function CheckboxStyle(owner) {
     this.borderWidth = 1;
     this.color = '#000';
-    this.bgColor = '#fff';
     this.bgHighlightedColor = '#ddd';
+    this.background = new UIBackgroundStyle(owner, '#fff');
 }
 
 export class TextEdit extends UIControl {

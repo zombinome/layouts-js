@@ -1,4 +1,5 @@
 import {UIControl} from './ui-controls-base.js';
+import {getMousePosition} from "./ui-helpers.js";
 
 const $handleRegionEvents = Symbol('handleRegionEvents');
 const $regionsUnderMouse = Symbol.for('regionsUnderMouse');
@@ -21,9 +22,9 @@ export class UIControlLayout extends UIControl {
     };
 
     handleMouseClick(args) {
-        const region = this.region.findRegionByXY(args.clientX, args.clientY);
-        if (region && region.data.onClick) {
-            region.data.onClick(args);
+        const region = this.region.findRegionByXY(args.clientX, args.clientY, true);
+        if (region) {
+            region.data.fireEvent('click', args);
         }
     }
 
@@ -38,14 +39,13 @@ export class UIControlLayout extends UIControl {
      * @param args {MouseEvent}
      */
     handleMouseMove(args) {
-        const mouseX = args.clientX, mouseY = args.clientY;
-
-        if (!this.region.shape.containsPoint(mouseX, mouseY)) {
+        const point = getMousePosition(args);
+        if (!this.region.shape.containsPoint(point.x, point.y)) {
             this.handleCanvasMouseOut();
         }
         else {
             const oldRegions = this[$regionsUnderMouse];
-            const newRegions = this.region.findAllRegionsByXY(mouseX, mouseY);
+            const newRegions = this.region.findAllRegionsByXY(point.x, point.y);
             const ml = Math.min(oldRegions.length, newRegions.length);
             let maxSameLength = 0;
             while (maxSameLength < ml && oldRegions[maxSameLength].id === newRegions[maxSameLength].id) maxSameLength++;
@@ -53,13 +53,11 @@ export class UIControlLayout extends UIControl {
             for (let i = oldRegions.length - 1; i >= maxSameLength; i--) {
                 const data = oldRegions[i].region.data;
                 data.fireEvent('mouseOut', args);
-                ////data.onMouseOut && data.onMouseOut(args);
             }
 
             for (let i = newRegions.length - 1; i >= maxSameLength; i--) {
                 const data = newRegions[i].region.data;
-                data.fireEvent('mouseId', args);
-                ////data.onMouseIn && data.onMouseIn(args);
+                data.fireEvent('mouseIn', args);
             }
 
             for (let i = maxSameLength - 1; i >= 0; i--) {
@@ -76,9 +74,7 @@ export class UIControlLayout extends UIControl {
         const regionsUnderMouse = this[$regionsUnderMouse];
         for (let i = regionsUnderMouse.length - 1; i >= 0; i--) {
             const region = regionsUnderMouse[i];
-            if (region.data.onMouseOut) {
-                region.data.onMouseOut();
-            }
+            region.data.fireEvent('mouseOut', null);
         }
 
         this[$regionsUnderMouse] = [];

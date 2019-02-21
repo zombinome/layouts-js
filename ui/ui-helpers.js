@@ -1,5 +1,5 @@
 import {backgroundImagePosition} from "./ui-controls-base.js";
-import {Rect} from "../regions.js";
+import {Rect, Point} from "../regions.js";
 
 'use strict';
 
@@ -38,6 +38,14 @@ export function scaleCanvas(canvasElement, width, height) {
     canvasElement.style.height = height + 'px';
 
     canvasElement.getContext('2d').scale(pixelRatio, pixelRatio);
+}
+
+/** @param args {MouseEvent}
+ *  @returns {Point} */
+export function getMousePosition(args) {
+    const x = args.clientX - args.target.offsetLeft;
+    const y = args.clientY - args.target.offsetTop;
+    return new Point(x, y);
 }
 
 export const imageHelpers = {

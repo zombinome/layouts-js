@@ -17,8 +17,6 @@ layout.draw = function(ctx, rect) {
     ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
     ctx.fillStyle = '#fff';
     ctx.fillRect(1, 1, rect.width - 2, rect.height - 2);
-
-
 };
 
 const colors = [
@@ -63,25 +61,29 @@ window.start = function start() {
     });
 };
 
-function onMouseIn() {
-
-    this.style.bgColor = colors[this.id % colors.length];
-
-    const $redrawRequired = Symbol.for('redrawRequired');
-    this[$redrawRequired] = true;
+/**
+ * @param control {UIControl}
+ * @param args {MouseEvent}
+ */
+function onMouseIn(control, args) {
+    /**@type{UIBackgroundStyle}*/ const bg = control.style.background;
+    bg.color = colors[control.id % colors.length];
 }
 
-function onMouseOut() {
-    this.style.bgColor = defaultColors[this.id];
-
-    const $redrawRequired = Symbol.for('redrawRequired');
-    this[$redrawRequired] = true;
+/**
+ * @param control {UIControl}
+ * @param args {MouseEvent}
+ */
+function onMouseOut(control, args) {
+    /**@type{UIBackgroundStyle}*/ const bg = control.style.background;
+    bg.color = defaultColors[control.id];
 }
 
+/** @param control {UIControl} */
 function subscribe(control) {
-    control.on('mouseIn', onMouseIn, control);
-    control.on ('mouseOut', onMouseOut, control);
-    defaultColors[control.id] = control.style.bgColor;
+    control.on('mouseIn', onMouseIn);
+    control.on ('mouseOut', onMouseOut);
+    defaultColors[control.id] = control.style.background.color;
 }
 
 function loadImage(url) {
@@ -96,6 +98,7 @@ function loadImage(url) {
 
 /**
  * @param layout {UIControlLayout}
+ * @param canvasContext {CanvasRenderingContext2D}
  */
 function demoDialogWithControls(layout, canvasContext) {
     /** @type {Dialog} */
@@ -116,19 +119,19 @@ function demoDialogWithControls(layout, canvasContext) {
     /** @type {Button} */
     const okButton = dialog.addControl(new Button(), new Rect(26, 90, 80, 24));
     okButton.text = 'OK';
-    okButton.onClick = function() {
-        console.info(this.text + ' button clicked');
+    okButton.on('click', function(control) {
+        console.info(control.text + ' button clicked');
         layout.removeControl(dialog.id);
-    };
+    });
     subscribe(okButton);
 
     /** @type {Button} */
     const cancelButton = dialog.addControl(new Button(), new Rect(114, 90, 80, 24));
     cancelButton.text = 'Cancel';
-    cancelButton.onClick = function() {
-        console.info(this.text + ' button clicked');
+    cancelButton.on('click', function(control) {
+        console.info(control.text + ' button clicked');
         layout.removeControl(dialog.id);
-    };
+    });
     subscribe(cancelButton);
 }
 
