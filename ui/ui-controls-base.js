@@ -12,17 +12,27 @@ const $activeControl = Symbol.for('activeControl');
 const $controlUnderMouse = Symbol.for('controlUnderMouse');
 
 const $eventHandlers = Symbol.for('eventHandlers');
-
+const $topMost = Symbol.for('topMost');
+const $getFirstTopMostRegion = Symbol.for('getFirstTopMostRegion');
 //const $parentStyle = Symbol.for('parentStyle');
 //const $defaultValues = Symbol.for('defaultValues');
 
 export const UIEvents = {
     mouseIn: 'mouseIn',
     mouseOut: 'mouseOut',
-    mouseMove: 'mouseMove'
+    mouseMove: 'mouseMove',
+    click: 'click'
+};
+
+export const LayoutProperties = {
+    container: 'container',
+    form: 'form'
 };
 
 export class UIControl {
+
+    static layoutProperties = defineLayoutProperties();
+
     /**
      * @constructor
      * @param [shape] {IShape}
@@ -40,10 +50,6 @@ export class UIControl {
 
         this[$eventHandlers] = {};
         this.style = null;
-
-        this.onMouseIn = null;
-        this.onMouseOut = null;
-        this.onMouseMove = null;
     }
 
     get id() { return this.region.id; }
@@ -69,6 +75,8 @@ export class UIControl {
         }
     }
 
+    get layoutProperties() { return UIControl.layoutProperties; }
+
     /**
      * Add new control to current control.
      * Child region created and added to regions hierarchy
@@ -77,13 +85,15 @@ export class UIControl {
      * @returns {*}
      */
     addControl(control, shape) {
-        control.region = this.region.addRegion(shape, control);
-        control.parent = this;
-        this.controls.push(control);
+        const childControl = typeof control == 'function' ? new control() : control;
+
+        childControl.region = this.region.addRegion(shape, childControl);
+        childControl.parent = this;
+        this.controls.push(childControl);
 
         this[$redrawRequired] = true;
 
-        return control;
+        return childControl;
     }
 
     /**
@@ -112,12 +122,14 @@ export class UIControl {
         const shouldRedraw = forceRedraw || this[$redrawRequired];
         if (shouldRedraw) {
             this[$redrawRequired] = false;
-            this.draw(ctx, shape);
+            this.draw && this.draw(ctx, shape);
         }
 
-        this.controls.forEach(control => {
-            const relativeShape = control.shape.relate(shape.x, shape.y);
+        this.region.enumRegions(region => {
+            const control = region.data;
+            const relativeShape = region.shape.relate(shape.x, shape.y);
             control.drawIfRequired(ctx, relativeShape, shouldRedraw);
+            return true;
         });
     }
 
@@ -167,15 +179,56 @@ export class UIControl {
     }
 }
 
-export class UIDialog extends UIControl {
+/**
+ * @implements {IFormControl}
+ */
+export class UIForm extends UIControl {
+
+    static layoutProperties = defineLayoutProperties([LayoutProperties.container, LayoutProperties.form]);
+
     constructor(shape) {
         super(shape);
 
         this.isModal = false;
+        this[$topMost] = false;
 
-        /** @type {UIDialog[]} */ this.modals = [];
+        /** @type {UIForm[]} */ this.modals = [];
         this[$activeControl] = null;
         this[$controlUnderMouse] = null;
+    }
+
+    get layoutProperties() { return UIForm.layoutProperties; }
+
+    get isTopMost() { return this[$topMost]; }
+    set isTopMost(value) {
+        value = !!value;
+        if (this[$topMost] !== value) {
+            this[$topMost] = value;
+
+            if (this.parent) {
+                this.parent.region.bringToFront(this.region.id);
+            }
+
+            // redraw update notification logic
+            if (value) {
+                this[$redrawRequired] = true;
+            }
+            else if (this.parent) {
+                this.parent[$redrawRequired] = true;
+            }
+        }
+    }
+
+    [$getFirstTopMostRegion](parentRegion) {
+        let result = null;
+        parentRegion.enumRegions(region => {
+            if (region.data.layoutProperties.form && region.data.isTopMost) {
+                result = region;
+                return false;
+            }
+
+            return true;
+        });
     }
 }
 
@@ -274,4 +327,22 @@ export class UIBackgroundStyle {
             imageHelpers.drawImage(ctx, this[$imageSource], sourceRect, destRect, this[$imagePosition]);
         }
     }
+}
+
+
+
+/**
+ * @param [properties] {string[]}
+ */
+export function defineLayoutProperties(properties) {
+    const props = {};
+    const allKeys = Object.keys(LayoutProperties);
+
+    properties = properties || [];
+    allKeys.forEach(propName => {
+        const value = properties.indexOf(propName) >= 0;
+        Object.defineProperty(props, propName, {value, writable: false});
+    });
+
+    return props;
 }

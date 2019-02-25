@@ -1,7 +1,7 @@
 'use strict';
 
 import { textAlign, textBaseLine, defaultTheme } from './ui-constants.js';
-import { UIControl, UIDialog, UIBackgroundStyle } from './ui-controls-base.js';
+import { UIControl, UIForm, UIBackgroundStyle } from './ui-controls-base.js';
 import { Rect } from "../regions.js";
 
 const $state = Symbol('state');
@@ -19,7 +19,7 @@ const $text = Symbol('text');
 //     $bgColor = Symbol('bgColor'),
 //     $textColor = Symbol('textColor');
 
-export class Dialog extends UIDialog {
+export class Dialog extends UIForm {
     constructor() {
         super();
         this.title = '';
@@ -62,7 +62,7 @@ export class Dialog extends UIDialog {
 }
 
 /**
- * @param owner {UIDialog}
+ * @param owner {UIForm}
  * @constructor
  */
 export function DialogStyle(owner) {

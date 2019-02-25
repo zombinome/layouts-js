@@ -14,12 +14,40 @@
 
         form { padding: 20px; background: #fff; }
         form > input, form > label, form > button { display: inline; }
+        .example-list { padding: 5px; background-color: #fff; border: 1px solid #000; }
+        .example-body { display: none; }
     </style>
 </head>
 <body>
-    <canvas id="buffer" style="width: 800px; height: 600px; margin: 10px;"></canvas>
+    <div class="example-list">
+        <span>
+            <input type="radio" name="examples" id="ex-1" onclick="switchExample('ex-1');" />
+            <label for="ex-1">Dialog with controls</label>
+        </span>
+        <span>
+            <input type="radio" name="examples" id="ex-2" onclick="switchExample('ex-2');"/>
+            <label for="ex-2">Background image position</label>
+        </span>
+        <span>
+            <input type="radio" name="examples" id="ex-3" onclick="switchExample('ex-3');" checked/>
+            <label for="ex-3">Dialog overlapping</label>
+        </span>
+
+    </div>
+    <div id="ex-1-body" class="example-body">
+        <canvas style="width: 800px; height: 600px; margin: 0;"></canvas>
+        <p><button onclick="start('demoDialogWithControls', 'ex-1')">Start demo</button></p>
+    </div>
+    <div id="ex-2-body" class="example-body">
+        <canvas style="width: 800px; height: 600px; margin: 0;"></canvas>
+        <p><button onclick="start('demoWithBackgroundImagePosition', 'ex-2')">Start demo</button></p>
+    </div>
+    <div id="ex-3-body" class="example-body" style="display: initial;">
+        <canvas style="width: 800px; height: 600px; margin: 0;"></canvas>
+        <p><button onclick="start('demoWithDialogOverlapping', 'ex-3')">Start demo</button></p>
+    </div>
+
     <script type="module" src="./test-app.js"></script>
-    <p><button onclick="start()">Start demo</button></p>
 
     <form>
         <input type="text" value="text" title="text" />

@@ -1,7 +1,6 @@
 'use strict';
 
 const $hash = Symbol('hash');
-////const $getHash = Symbol('getHash');
 
 export function Point(x, y) {
     this.x = x;
@@ -129,12 +128,20 @@ export class Circle {
 }
 
 /**
+ * @const
  * @implements {IShape}
  * @implements {IEquatable}
- * @type {{containsPoint: (function(number, number): boolean), relate: (function(): IShape), getLocalPoint: (function(number, number): Point), equals: (function(IEquatable): boolean), getHash: (function(): number)}}
+ * @type {{
+ *  containsPoint: (function(number, number): boolean),
+ *  relate: (function(): IShape),
+ *  getLocalPoint: (function(number, number): Point),
+ *  equals: (function(IEquatable): boolean),
+ *  getHash: (function(): number)
+ * }}
  */
 const emptyShape = {
-    x: 0, y: 0,
+    x: 0,
+    y: 0,
     containsPoint: (x, y) => false,
     relate: function() { return this; },
     getLocalPoint: (x, y) => new Point(x, y),
@@ -264,7 +271,10 @@ export class Region {
         return item.update(shape, data, handler);
     }
 
-    enumRegions(action) {
+    /**
+     * @param action {(function(Region): boolean)}
+     */
+    enumRegions(action) {// this[$regions].every(x => action(x));
         let index = 0;
         let continueEnum = true;
         while(index < this[$regions].length && continueEnum) {
@@ -274,6 +284,10 @@ export class Region {
         }
     }
 
+    /**
+     * Sends child region with specified id to back of regions stack
+     * @param regionId {number} region id
+     */
     sendToBack(regionId) {
         const index = this[$regions].findIndex(x => x[$id] === regionId);
         if (index < 0)
@@ -288,6 +302,10 @@ export class Region {
         this[$regions][0] = region;
     }
 
+    /**
+     * Brings child region with specified id to front of regions stack
+     * @param regionId {number} region id
+     */
     bringToFront(regionId) {
         const index = this[$regions].findIndex(x => x.id === regionId);
         if (index < 0)
@@ -311,9 +329,6 @@ export class Region {
         if (index === 0)
             return;
 
-        if (index === 0)
-            return;
-
         const region = this[$regions][index];
         this[$regions][index] = this[$regions][index - 1];
         this[$regions][index - 1] = region;
@@ -324,9 +339,6 @@ export class Region {
         if (index < 0)
             throw new Error('Unknown region with ID: ' + regionId);
 
-        if (index === 0)
-            return;
-
         if (index === (this[$regions].length - 1))
             return;
 
@@ -335,33 +347,74 @@ export class Region {
         this[$regions][index + 1] = region;
     }
 
+    moveAfter(targetId, regionId) {
+        if (targetId === regionId)
+            return;
+
+        const targetIndex = this[$regions].findIndex(x => x.id === targetId);
+        if (targetIndex < 0)
+            throw new Error('Unknown region with ID: ' + targetId);
+
+        const index = this[$regions].findIndex(x => x.id === regionId);
+        if (index < 0)
+            throw new Error('Unknown region with ID: ' + regionId);
+
+        if (index === targetIndex - 1)
+            return;
+
+        const region = this[$regions][index];
+        if (index < targetIndex) {
+            for (let i = index; i < targetIndex - 1; i++)
+                this[$regions][i] = this[$regions][i + 1];
+            this[$regions][targetIndex - 1] = region;
+        }
+        else {
+            for(let i = index; i > targetIndex; i--)
+                this[$regions][i] = this[$regions][i - 1];
+            this[$regions][targetIndex] = region;
+        }
+    }
+
+    /**
+     *
+     * @param x {number}
+     * @param y {number}
+     * @param [deepSearch] {boolean}
+     * @returns {Region}
+     * @public
+     */
     findRegionByXY(x, y, deepSearch) {
         let region = null;
         for (let i = this[$regions].length - 1; i >= 0; i--) {
             let r = this[$regions][i];
-            if (r.shape.containsPoint(x, y)){
+            if (r.shape.containsPoint(x, y)) {
                 region = r;
                 break;
             }
         }
 
-        if (!region) {
+        if (!region)
             return null;
-        }
 
-        if (!deepSearch) {
+        if (!deepSearch)
             return region;
-        }
 
         const localPoint = region.shape.getLocalPoint(x, y);
         return region.findRegionByXY(localPoint.x, localPoint.y, true) || region;
     }
 
+    /**
+     *
+     * @param x {number}
+     * @param y {number}
+     * @returns {Region[]}
+     * @public
+     */
     findAllRegionsByXY(x, y) {
         const result = [];
         let point = new Point(x, y);
-        let region = this;
-        while(region = region.findRegionByXY(point.x, point.y, false)) {
+        /**@type{Region}*/let region = this;
+        while((region = region.findRegionByXY(point.x, point.y, false)) !== null) {
             result.push({ region, absoluteLocation: point });
             point = region.shape.getLocalPoint(point.x, point.y);
         }
@@ -393,8 +446,8 @@ function isHandlerValid(handler) {
 }
 
 /** @interface IShape */
-/** @member IShape#x {number} */
-/** @member IShape#y {number} */
+/** @property IShape#x {number}*/
+/** @property IShape#y {number}*/
 /** @function IShape#containsPoint
  * @param {number} x
  * @param {number} y
